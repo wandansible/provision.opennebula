@@ -1,0 +1,9 @@
+---
+one_api_url: http://127.0.0.1:2633/RPC2
+one_api_username: "ansible"
+
+one_vm_wait_delay: 10
+one_vm_wait_timeout: 300
+
+one_vm_default_datastore: 0
+one_vm_pinned: false

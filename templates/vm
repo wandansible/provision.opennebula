@@ -1,0 +1,80 @@
+#jinja2: trim_blocks: "false", lstrip_blocks: "true"
+
+NAME = "{{ inventory_hostname }}"
+HYPERVISOR = "kvm"
+{% if one_vm.host is defined and one_vm.host != "" %}
+SCHED_REQUIREMENTS = "HYPERVISOR=\"kvm\" & NAME=\"{{ one_vm.host }}\""
+{% elif one_vm.host_type is defined and one_vm.host_type != "" %}
+SCHED_REQUIREMENTS = "HYPERVISOR=\"kvm\" & TYPE=\"{{ one_vm.host_type }}\""
+{% else %}
+SCHED_REQUIREMENTS = "HYPERVISOR=\"kvm\""
+{% endif %}
+SCHED_DS_REQUIREMENTS = "ID=\"{{ one_vm.datastore if one_vm.datastore is defined else one_vm_default_datastore }}\""
+
+CONTEXT = [
+  NETWORK = "YES",
+  SET_HOSTNAME = "{{ inventory_hostname }}",
+  USERNAME = "{{ provision_user_username }}",
+  CRYPTED_PASSWORD_BASE64 = "{{ provision_user_password | password_hash('sha512') | b64encode }}",
+  SSH_PUBLIC_KEY = "$USER[SSH_PUBLIC_KEY]"
+]
+
+DISK = [
+  IMAGE = "{{ one_vm.os }}",
+  IMAGE_UNAME = "oneadmin",
+  DEV_PREFIX = "vd"
+]
+{% for index in range(one_vm.block_storage | default([]) | length) %}
+
+DISK = [
+  IMAGE = "{{ inventory_hostname }}_{{ index }}",
+  IMAGE_UNAME = "{{ one_api_username }}",
+  DEV_PREFIX = "vd"
+]
+{% endfor %}
+{% for disk in one_vm.extra_storage | default([]) %}
+
+DISK = [
+  {% for key, value in disk.config | dictsort %}
+  {{ key | upper }} = "{{ value }}"{{ "," if not loop.last else "" }}
+  {% endfor %}
+]
+{% endfor %}
+
+NIC_DEFAULT = [
+  MODEL = "virtio"
+]
+{% for nic in one_vm.nics | default([]) %}
+
+NIC = [
+  NETWORK = "{{ nic.network }}",
+  NETWORK_UNAME = "oneadmin",
+  IP = "{{ nic.ip }}"
+]
+{% endfor %}
+
+CPU_MODEL = [
+  MODEL = "host-passthrough"
+]
+{% if one_vm.pinned | default(one_vm_pinned) | bool %}
+
+TOPOLOGY = [
+  SOCKETS = "1",
+  PIN_POLICY = "THREAD",
+  MEMORY_ACCESS = "shared"
+]
+{% endif %}
+
+OS = [
+  ARCH = "x86_64"
+]
+
+GRAPHICS = [
+  LISTEN = "0.0.0.0",
+  TYPE = "SPICE",
+  RANDOM_PASSWD = "YES"
+]
+{% if one_vm.extra_config is defined and one_vm.extra_config != "" %}
+
+{{ one_vm.extra_config }}
+{% endif %}
