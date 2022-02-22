@@ -14,9 +14,10 @@ SCHED_DS_REQUIREMENTS = "ID=\"{{ one_vm.datastore if one_vm.datastore is defined
 CONTEXT = [
   NETWORK = "YES",
   SET_HOSTNAME = "{{ inventory_hostname }}",
-  USERNAME = "{{ provision_user_username }}",
-  CRYPTED_PASSWORD_BASE64 = "{{ provision_user_password | password_hash('sha512') | b64encode }}",
-  SSH_PUBLIC_KEY = "{{ provision_user_public_key }}"
+  PROVISION_USER_USERNAME = "{{ provision_user_username }}",
+  PROVISION_USER_CRYPTED_PASSWORD_BASE64 = "{{ provision_user_password | string | password_hash('sha512') | b64encode }}",
+  PROVISION_USER_PUBLIC_KEY = "{{ provision_user_public_key }}",
+  START_SCRIPT_BASE64 = "{{ lookup('template', 'init.sh') | b64encode }}"
 ]
 
 DISK = [
