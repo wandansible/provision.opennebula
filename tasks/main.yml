@@ -154,6 +154,11 @@
         delay: "{{ one_vm_wait_delay }}"
         timeout: "{{ one_vm_wait_timeout }}"
 
+    - name: Set root password
+      ansible.builtin.user:
+        name: root
+        password: "{{ root_password | password_hash('sha512') }}"
+
     - name: Add provision user to sudo group
       ansible.builtin.user:
         name: "{{ provision_user_username }}"
