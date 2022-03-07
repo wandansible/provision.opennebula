@@ -1,0 +1,129 @@
+---
+- name: Assert that a host is specified if block storage is used
+  ansible.builtin.assert:
+    fail_msg: Please specify a host to deploy the VM on
+    success_msg: A host has been specified
+    that:
+      - one_vm.host is defined
+      - one_vm.host != ""
+  when:
+    - one_vm.block_storage is defined
+    - one_vm.block_storage != []
+
+- name: Run on frontend without becoming root
+  delegate_to: "{{ one_frontend }}"
+  become: false
+  block:
+    - name: Check if block storage images are added to OpenNebula
+      ansible.builtin.command:
+        cmd: >-
+          oneimage show
+          --user "{{ one_api_username }}"
+          --password "{{ one_api_password }}"
+          "{{ inventory_hostname }}_{{ index }}"
+      loop: "{{ one_vm.block_storage | default([]) }}"
+      loop_control:
+        index_var: index
+        label: "{{ inventory_hostname }}_{{ index }}"
+      no_log: true
+      register: _one_img_check
+      changed_when: false
+      failed_when:
+        - _one_img_check.rc != 0
+        - "'not found' not in _one_img_check.stderr"
+
+    - name: Add block storage images to OpenNebula
+      ansible.builtin.command:
+        cmd: >-
+          oneimage create
+          --user "{{ one_api_username }}"
+          --password "{{ one_api_password }}"
+          --datastore "{{ item.datastore }}"
+          --prefix vd
+          --persistent
+          --type DATABLOCK
+          --size "{{ item.size }}"
+          --fs ext4
+          --name "{{ inventory_hostname }}_{{ index }}"
+      loop: "{{ one_vm.block_storage | default([]) }}"
+      loop_control:
+        index_var: index
+        label: "{{ inventory_hostname }}_{{ index }}"
+      when: _one_img_check.results[index].rc != 0
+      no_log: true
+
+    - name: Upload OpenNebula VM template to frontend
+      ansible.builtin.template:
+        src: vm
+        dest: /tmp/{{ inventory_hostname }}.tmpl
+        mode: u=rw,g=,o=
+
+    - name: Check if VM template is registered in OpenNebula
+      ansible.builtin.command:
+        cmd: >-
+          onetemplate show
+          --user "{{ one_api_username }}"
+          --password "{{ one_api_password }}"
+          "{{ inventory_hostname }}"
+      no_log: true
+      register: _one_template_check
+      changed_when: false
+      failed_when:
+        - _one_template_check.rc != 0
+        - "'not found' not in _one_template_check.stderr"
+
+    - name: Add VM template to OpenNebula
+      ansible.builtin.command:
+        cmd: >-
+          onetemplate create
+          --user "{{ one_api_username }}"
+          --password "{{ one_api_password }}"
+          "/tmp/{{ inventory_hostname }}.tmpl"
+      when: _one_template_check.rc != 0
+      no_log: true
+
+    - name: Update VM template in OpenNebula
+      ansible.builtin.command:
+        cmd: >-
+          onetemplate update
+          --user "{{ one_api_username }}"
+          --password "{{ one_api_password }}"
+          "{{ inventory_hostname }}"
+          "/tmp/{{ inventory_hostname }}.tmpl"
+      when: _one_template_check.rc == 0
+      no_log: true
+
+    - name: Delete OpenNebula VM template from frontend
+      ansible.builtin.file:
+        path: /tmp/{{ inventory_hostname }}.tmpl
+        state: absent
+
+    - name: Provision host as virtual machine
+      community.general.one_vm:
+        api_url: "{{ one_api_url }}"
+        api_username: "{{ one_api_username }}"
+        api_password: "{{ one_api_password }}"
+        exact_count: 1
+        count_labels:
+          - ansible-managed
+        count_attributes:
+          NAME: "{{ inventory_hostname }}"
+        labels: "{{ ['ansible-managed'] + one_vm.labels | default([]) }}"
+        attributes:
+          NAME: "{{ inventory_hostname }}"
+        template_name: "{{ inventory_hostname }}"
+        disk_size: |
+          {% set sizes = [one_vm.size] %}
+          {% for disk in one_vm.block_storage | default([]) %}
+          {% set _ = sizes.append(disk.size) %}
+          {% endfor %}
+          {% for disk in one_vm.extra_storage | default([]) %}
+          {% set _ = sizes.append(disk.size) %}
+          {% endfor %}
+          {{ sizes }}
+        memory: "{{ one_vm.memory }}"
+        cpu: "{{ one_vm.cpu }}"
+        vcpu: "{{ one_vm.cpu }}"
+        state: present
+      vars:
+        ansible_python_interpreter: /opt/one/venv/bin/python3
