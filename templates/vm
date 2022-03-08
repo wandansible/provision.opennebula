@@ -16,7 +16,7 @@ CONTEXT = [
   SET_HOSTNAME = "{{ inventory_hostname }}",
   USERNAME = "{{ provision_user_username }}",
   CRYPTED_PASSWORD_BASE64 = "{{ provision_user_password | password_hash('sha512') | b64encode }}",
-  SSH_PUBLIC_KEY = "$USER[SSH_PUBLIC_KEY]"
+  SSH_PUBLIC_KEY = "{{ provision_user_public_key }}"
 ]
 
 DISK = [
