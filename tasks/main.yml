@@ -10,6 +10,6 @@
 - name: Run tasks on OpenNebula VM as provision user
   vars:
     ansible_user: "{{ provision_user_username }}"
-    ansible_ssh_pass: "{{ provision_user_password }}"
+    ansible_ssh_pass: "{{ provision_user_ssh_password }}"
     ansible_become_pass: "{{ provision_user_password }}"
   ansible.builtin.import_tasks: vm.yml
