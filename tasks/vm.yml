@@ -4,27 +4,6 @@
     delay: "{{ one_vm_wait_delay }}"
     timeout: "{{ one_vm_wait_timeout }}"
 
-- name: Add provision user to sudo group
-  ansible.builtin.user:
-    name: "{{ provision_user_username }}"
-    groups:
-      - sudo
-    append: true
-
-- name: Remove passwordless sudo access
-  ansible.builtin.file:
-    path: /etc/sudoers.d/one-context
-    state: absent
-
-- name: Reset SSH connection
-  ansible.builtin.meta: reset_connection
-
-- name: Purge one-context package
-  ansible.builtin.apt:
-    name: one-context
-    purge: true
-    state: absent
-
 - name: Run common provision tasks
   ansible.builtin.import_role:
     name: provision
