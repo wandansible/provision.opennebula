@@ -23,7 +23,7 @@ if [ "${provision_user_create:-}" = "true" ]; then
         echo "${PROVISION_USER_PUBLIC_KEY}" > "/home/${PROVISION_USER_USERNAME}/.ssh/authorized_keys"
         chmod u=rw,g=,o= "/home/${PROVISION_USER_USERNAME}/.ssh/authorized_keys"
         chown -R "${PROVISION_USER_USERNAME}:${PROVISION_USER_USERNAME}" "/home/${PROVISION_USER_USERNAME}/.ssh"
-        echo "${PROVISION_USER_USERNAME}:${provision_user_password}" | chpasswd
+        echo "${PROVISION_USER_USERNAME}:${provision_user_password}" | chpasswd --encrypted
         usermod --append --groups sudo "${PROVISION_USER_USERNAME}"
     fi
 
