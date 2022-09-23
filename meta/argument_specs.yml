@@ -1,0 +1,136 @@
+---
+argument_specs:
+  main:
+    short_description: Provision OpenNebula virtual machine
+    description: |
+      Provision the host as a virtual machine on an OpenNebula cluster.
+      The provision user is automatically created when the VM is instantiated
+      and the username is set to provision_user_username and the password
+      is set to provision_user_password.
+    options:
+      one_frontend:
+        description: Hostname of the OpenNebula frontend server
+        type: str
+        required: true
+
+      one_api_url:
+        description: URL for the OpenNebula API (relative to the frontend server)
+        type: str
+        default: http://127.0.0.1:2633/RPC2
+
+      one_api_username:
+        description: Username for API authentication
+        type: str
+        default: ansible
+
+      one_api_password:
+        description: Password for API authentication
+        type: str
+        required: true
+
+      one_vm_wait_delay:
+        description: Time, in seconds, to wait before checking for an SSH connection to the VM
+        type: int
+        default: 10
+
+      one_vm_wait_timeout:
+        description: Time, in seconds, to wait for an SSH connection to the VM before giving up
+        type: int
+        default: 300
+
+      one_vm_default_datastore:
+        description: ID of the default datastore to use for the primary virtual disk
+        type: int
+        default: 0
+
+      one_vm_pinned:
+        description: If true, pin the VM to CPUs on the same NUMA node
+        type: bool
+        default: false
+
+      one_vm:
+        description: Parameters used to create the virtual machine
+        type: dict
+        required: true
+        options:
+          host:
+            description: Specific host to deploy the VM on, required for block storage
+            type: str
+          host_type:
+            description: Host type to deploy the VM on
+            type: str
+          memory:
+            description: Size of the virtual memory, given as a number of data units, e.g. "4GB"
+            type: str
+            required: true
+          cpu:
+            description: Number of virtual CPUs
+            type: int
+            required: true
+          os:
+            description: Name of an operating system image available in the OpenNebula cluster
+            type: str
+            required: true
+          size:
+            description: |
+              Size of the primary virtual disk containing the root directory,
+              given as a number of data units, e.g. "100GB"
+            type: str
+            required: true
+          block_storage:
+            description: List of persistent logical volumes to attach to the VM
+            type: list
+            elements: dict
+            options:
+              datastore:
+                description: |
+                  Name of an LVM datastore available for the OpenNebula host
+                  where the logical volume will be stored
+                type: str
+                required: true
+              size:
+                description: Size of the logical volume, given as a number of data units, e.g. "1000GB"
+                type: str
+                required: true
+          extra_storage:
+            description: List of extra virtual disks to attach
+            type: list
+            elements: dict
+            options:
+              config:
+                description: |
+                  Configuration for the virtual disk,
+                  see https://docs.opennebula.io/6.4/management_and_operations/references/template.html#disks-section
+                  for available options
+                type: dict
+                required: true
+              size:
+                description: Size of the virtual disk, given as a number of data units, e.g. "4GB"
+                type: str
+                required: true
+          nics:
+            description: List of virtual interfaces to attach
+            type: list
+            elements: dict
+            options:
+              network:
+                description: Name of a virtual network available in the OpenNebula cluster
+                type: str
+                required: true
+              ip:
+                description: IPv4 address for the host
+                type: str
+                required: true
+          extra_config:
+            description: Contents for extra VM template configuration
+            type: str
+          datastore:
+            description: |
+              ID of the default datastore to use for the primary virtual disk
+              (overrides one_vm_default_datastore)
+            type: int
+          pinned:
+            description: |
+              If true, pin the VM to CPUs on the same NUMA node
+              (overrides one_vm_pinned)
+            type: bool
